@@ -1,26 +1,30 @@
 
+import Weather.{executionContext, materializer}
 import akka.actor.ActorSystem
 import akka.http.scaladsl.Http
-import akka.http.scaladsl.model.*
-import akka.http.scaladsl.server.Directives.*
-import akka.http.scaladsl.server.{Directives, Route}
+import akka.http.scaladsl.model._
+import akka.http.scaladsl.server.Directives._
+import akka.http.scaladsl.server.Route
+import akka.kafka.scaladsl._
+import akka.kafka.{ConsumerSettings, ProducerSettings, Subscriptions}
 import akka.stream.Materializer
-import io.circe.*
+import akka.stream.scaladsl.{Sink, Source}
+import com.typesafe.config.{Config, ConfigFactory}
+import io.circe._
 import io.circe.parser.parse
-import org.apache.kafka.clients.consumer.KafkaConsumer
-import org.apache.kafka.clients.producer.{KafkaProducer, ProducerRecord}
+import org.apache.kafka.clients.producer.ProducerRecord
+import org.apache.kafka.common.serialization.{StringDeserializer, StringSerializer}
 import org.slf4j.LoggerFactory
 
-import java.io.FileInputStream
-import java.time.Duration
-import java.util.Properties
-import scala.concurrent.duration.*
+import scala.jdk.FutureConverters.FutureOps
+import io.circe.parser.decode
+
+import scala.concurrent.duration._
 import scala.concurrent.{ExecutionContextExecutor, Future}
-import scala.jdk.CollectionConverters.*
 import scala.util.{Failure, Success}
 
 object Weather extends App {
-  val logger = LoggerFactory.getLogger("my-app")
+  private val logger = LoggerFactory.getLogger("my-app")
   implicit val system: ActorSystem = ActorSystem("weather-app")
   implicit val materializer: Materializer = Materializer.createMaterializer(system)
   implicit val executionContext: ExecutionContextExecutor = system.dispatcher
@@ -31,14 +35,10 @@ object Weather extends App {
   val weatherDataUrl = s"http://api.weatherapi.com/v1/current.json?key=$apiKey&q=London"
   val weatherRequest = HttpRequest(uri = weatherDataUrl)
 
-  val producerProperties = new Properties()
-  val consumerProperties = new Properties()
-  consumerProperties.load(new FileInputStream("src/main/resources/consumer.properties"))
-  producerProperties.load(new FileInputStream("src/main/resources/producer.properties"))
+  val config = ConfigFactory.load()
 
-
-  val weatherDataSender = new WeatherDataSender(producerProperties, topic)
-  val weatherConsumer = new WeatherConsumer(consumerProperties, topic)
+  val weatherConsumer = new WeatherConsumer(system, topic)
+  val weatherDataSender = new WeatherDataSender(config, topic)
 
   val weatherRoute: Route = {
     get {
@@ -54,9 +54,10 @@ object Weather extends App {
                     val json = byteString.data.utf8String
                     val weatherData = parse(json)
 
-                    if (!weatherConsumer.consumeIsEmpty(weatherData)) {
+                    if(weatherConsumer.consumeIsEmpty(weatherData)){
                       weatherDataSender.sendDataToTopic(weatherData)
                     }
+
                   case Failure(error) =>
                     logger.info(s"Error: ${error.getMessage}")
                 }
@@ -71,48 +72,46 @@ object Weather extends App {
       }
     }
   }
-  val bindingFuture = Http().newServerAt("localhost", 8080).bindFlow(weatherRoute)
+  Http().newServerAt("localhost", 8080).bind(weatherRoute)
+
   logger.info("Server online at http://localhost:8080/weather")
 }
 
-class WeatherConsumer(consumerProperties: Properties, topic: String) {
-  val logger = LoggerFactory.getLogger("my-app")
-
+class WeatherConsumer(system: ActorSystem, topic: String) {
+  private val logger = LoggerFactory.getLogger("my-app")
+  val consumerSettings = ConsumerSettings(system, new StringDeserializer, new StringDeserializer).withGroupId("group-id-1")
   def consumeIsEmpty(weatherData: Either[Throwable, Json]): Boolean = {
 
-    val consumer = new KafkaConsumer[String, String](consumerProperties)
-    consumer.subscribe(List(topic).asJava)
-    var consumed = false
-
-    while (!consumed) {
-      val records = consumer.poll(Duration.ofSeconds(3)) // Poll for new messages
-
-      if (records.isEmpty) {
-        consumed = true
-        logger.info(s"$topic is empty...")
+    // Create a Consumer
+    val consumer = Consumer.plainSource(consumerSettings, Subscriptions.topics(topic))
+    // Check for record existence
+    val hasRecord: Boolean = consumer
+      .map { record =>
+        val jsonString = record.value()
+        decode[Json](jsonString)
       }
+      .runWith(Sink.headOption) // Get the first element (if any)
+      .map(_.nonEmpty)// Check if an element exists
+      .asJava
+      .toCompletableFuture // Convert to a Future
+      .get() // result
 
-      val recordIterator = records.iterator()
-      while (recordIterator.hasNext) {
-        val value = recordIterator.next()
-        if (value.value() == weatherData.toString) {
-          consumer.close() // Message found, stop consuming
-          consumed = true
-        }
-      }
-    }
-    consumer.close()
-    consumed
+    hasRecord
   }
 }
 
-class WeatherDataSender(producerProperties: Properties, topic: String) {
-  val logger = LoggerFactory.getLogger("my-app")
+class WeatherDataSender(config: Config, topic: String) {
+  private val logger = LoggerFactory.getLogger("my-app")
+  def sendDataToTopic(weatherData: Either[Throwable, Json]): Future[Unit] = {
+    val producerSettings = ProducerSettings(config.getConfig("akka.kafka.producer"), new StringSerializer, new StringSerializer)
+    val producer = Producer.plainSink(producerSettings)
 
-  def sendDataToTopic(weatherData: Either[Throwable, Json]): Unit = {
-    val producer = new KafkaProducer[String, String](producerProperties)
-    producer.send(new ProducerRecord[String, String](topic, weatherData.toString))
-    producer.flush()
-    logger.info(s"The data was successfully sent to the $topic ")
+    Source.single(weatherData.toString)
+      .map(value => new ProducerRecord[String, String](topic, value))
+      .runWith(producer)
+      .map(_ => logger.info(s"The data was successfully sent to $topic"))
+      .recover {
+        case error => logger.error(s"Failed to send data to $topic. Error: $error")
+      }
   }
 }

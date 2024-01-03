@@ -6,10 +6,10 @@ import java.io.FileInputStream
 import java.time.Duration
 import java.util.Properties
 import scala.collection.mutable.ListBuffer
-import scala.jdk.CollectionConverters.*
+import scala.jdk.CollectionConverters._
 import scala.util.control.Breaks.break
 
-object RedisConsumer extends App {
+object  RedisConsumer extends App {
   val logger = LoggerFactory.getLogger("my-app")
 
   val consumerProperties = new Properties()
@@ -20,8 +20,8 @@ object RedisConsumer extends App {
   val topic = "weather-data"
 
 
-  //  var list: ListBuffer[String] = extractDataFromKafkaToList()
-  //  saveDataToRedis(list)
+    val list: ListBuffer[String] = extractDataFromKafkaToList()
+    saveDataToRedis(list)
   println(getDataFromRedis())
 
   def getDataFromRedis(): ListBuffer[String] = {
