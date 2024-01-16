@@ -9,6 +9,11 @@ lazy val root = (project in file("."))
     name := "akka-weather-data"
   )
 
+//Compile / PB.targets := Seq(
+//  scalapb.gen() -> (Compile / sourceManaged).value
+//)
+
+//addSbtPlugin("com.thesamet" % "sbt-protoc" % "1.0.0")
 
 libraryDependencies ++= Seq(
   "io.lettuce" % "lettuce-core" % "6.3.0.RELEASE",
@@ -23,5 +28,9 @@ libraryDependencies ++= Seq(
   "org.slf4j" % "slf4j-api" % "2.0.5",
   "ch.qos.logback" % "logback-classic" % "1.4.7",
   "io.circe" %% "circe-core" % "0.14.5",
-  "io.circe" %% "circe-parser" % "0.14.5"
+  "io.circe" %% "circe-parser" % "0.14.5",
+
+  "io.grpc" % "grpc-netty" % "1.53.0",
+  "io.grpc" % "grpc-protobuf" % "1.53.0",
+  "io.grpc" % "grpc-stub" % "1.53.0"
 )

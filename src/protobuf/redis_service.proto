@@ -1,0 +1,41 @@
+syntax = "proto3";
+
+package com.example;
+
+import "google/protobuf/empty.proto";
+
+service GetCityWeather {
+  rpc GetRedisData (CityName) returns (CityWeather);
+}
+
+message CityName {
+  string name = 1;
+}
+
+message CityWeather {
+   string city = 1;
+   double temp = 2;
+   double humidity = 3;
+   bool isRainy = 4;
+}
+
+service KafkaService {
+  rpc ProduceMessage (ProducerConfig) returns (google.protobuf.Empty);
+  rpc ConsumeMessage (ConsumerConfig) returns (KafkaMessage);
+}
+
+message KafkaMessage {
+  string key = 1;
+  string value = 2;
+}
+
+message ProducerConfig {
+  string bootstrapServers = 1;
+  string topic = 2;
+}
+
+message ConsumerConfig {
+  string bootstrapServers = 1;
+  string topic = 2;
+  string groupId = 3;
+}
