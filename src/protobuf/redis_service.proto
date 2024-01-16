@@ -39,3 +39,17 @@ message ConsumerConfig {
   string topic = 2;
   string groupId = 3;
 }
+
+message CityInformation {
+  string key = 1;
+  string value = 2;
+}
+
+service DBService {
+  rpc SaveByCityName (CityInformation) returns (google.protobuf.Empty);
+  rpc GetCityData (GetCityByKey) returns (CityInformation);
+}
+
+message GetCityByKey {
+  string key = 1;
+}
