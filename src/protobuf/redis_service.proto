@@ -40,11 +40,6 @@ message ConsumerConfig {
   string groupId = 3;
 }
 
-message CityInformation {
-  string key = 1;
-  string value = 2;
-}
-
 service DBService {
   rpc SaveByCityName (CityInformation) returns (google.protobuf.Empty);
   rpc GetCityData (GetCityByKey) returns (CityInformation);
@@ -52,4 +47,8 @@ service DBService {
 
 message GetCityByKey {
   string key = 1;
+}
+
+message CityInformation {
+  map<string, string> data = 1;
 }
