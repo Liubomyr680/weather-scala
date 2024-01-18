@@ -5,14 +5,14 @@ package com.example;
 import "google/protobuf/empty.proto";
 
 service GetCityWeather {
-  rpc GetRedisData (CityName) returns (CityWeather);
+  rpc GetData (City) returns (WeatherData);
 }
 
-message CityName {
+message City {
   string name = 1;
 }
 
-message CityWeather {
+message WeatherData {
    string city = 1;
    double temp = 2;
    double humidity = 3;
