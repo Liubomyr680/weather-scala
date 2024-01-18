@@ -9,7 +9,7 @@ import scala.collection.mutable.ListBuffer
 import scala.jdk.CollectionConverters._
 import scala.util.control.Breaks.break
 
-object  RedisConsumer extends App {
+object DBService extends App {
   val logger = LoggerFactory.getLogger("my-app")
 
   val consumerProperties = new Properties()
@@ -20,27 +20,10 @@ object  RedisConsumer extends App {
   val topic = "weather-data"
 
 
-    val list: ListBuffer[String] = extractDataFromKafkaToList()
-    saveDataToRedis(list)
-  println(getDataFromRedis())
+  val list: ListBuffer[String] = getDataFromTopic()
+  saveData(list)
 
-  def getDataFromRedis(): ListBuffer[String] = {
-    // Get all the keys in Redis
-    val keys = connection.sync().keys("*")
-
-    // Create an empty list buffer to store the retrieved data
-    val dataListBuffer = ListBuffer[String]()
-
-    // Iterate over the keys and get the values from Redis
-    for (key <- keys.asScala) {
-      val value: String = connection.sync().get(key)
-      dataListBuffer += value
-    }
-
-    dataListBuffer
-  }
-
-  def saveDataToRedis(dataList: ListBuffer[String]): Unit = {
+  def saveData(dataList: ListBuffer[String]): Unit = {
     for (dataItem <- dataList) {
       connection.sync().set(dataItem.hashCode.toString, dataItem)
     }
@@ -51,7 +34,7 @@ object  RedisConsumer extends App {
     }
   }
 
-  def extractDataFromKafkaToList(): ListBuffer[String] = {
+  def getDataFromTopic(): ListBuffer[String] = {
     val consumer = new KafkaConsumer[String, String](consumerProperties)
     consumer.subscribe(List(topic).asJava)
 
