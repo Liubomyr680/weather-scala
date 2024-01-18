@@ -6,6 +6,7 @@ import akka.http.scaladsl.{ConnectionContext, Http, HttpsConnectionContext}
 import akka.pki.pem.{DERPrivateKeyLoader, PEMDecoder}
 import com.example.GetCityWeatherHandler
 import com.typesafe.config.ConfigFactory
+import service.controller_service.ClientServiceImpl
 
 import java.security.{KeyStore, SecureRandom}
 import java.security.cert.{Certificate, CertificateFactory}
@@ -33,7 +34,7 @@ class Server(system: ActorSystem) {
     implicit val ec: ExecutionContext = system.dispatcher
 
     val service: HttpRequest => Future[HttpResponse] =
-      GetCityWeatherHandler(new ServiceImpl)
+      GetCityWeatherHandler(new ClientServiceImpl)
 
     val bound: Future[Http.ServerBinding] = Http()(system)
       .newServerAt(interface = "127.0.0.1", port = 8080)

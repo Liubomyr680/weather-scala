@@ -1,4 +1,4 @@
-package service
+package controller
 
 import akka.actor.ActorSystem
 import akka.grpc.GrpcClientSettings
@@ -7,7 +7,7 @@ import com.example.{City, GetCityWeatherClient}
 import scala.concurrent.ExecutionContext
 import scala.util.{Failure, Success}
 
-object Client {
+object ClientController {
 
   def main(args: Array[String]): Unit = {
     implicit val sys: ActorSystem = ActorSystem("Client")

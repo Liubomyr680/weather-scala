@@ -1,3 +1,5 @@
+package service.db_service
+
 import io.lettuce.core.RedisClient
 import org.apache.kafka.clients.consumer.KafkaConsumer
 import org.slf4j.LoggerFactory
@@ -21,12 +23,10 @@ object DBService extends App {
 
 
   val list: ListBuffer[String] = getDataFromTopic()
-  saveData(list)
+  saveDataToDB(list)
 
-  def saveData(dataList: ListBuffer[String]): Unit = {
-    for (dataItem <- dataList) {
-      connection.sync().set(dataItem.hashCode.toString, dataItem)
-    }
+  private def saveDataToDB(dataList: ListBuffer[String]): Unit = {
+    dataList.foreach(dataItem => connection.sync().set(dataItem.hashCode.toString, dataItem))
 
     // Close the Redis connection if it was opened in this method
     if (connection.isOpen) {
