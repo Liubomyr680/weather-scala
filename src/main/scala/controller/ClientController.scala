@@ -15,11 +15,7 @@ object ClientController {
 
     val client = GetCityWeatherClient(GrpcClientSettings.fromConfig("service.GetCityWeather"))
 
-    val names =
-      if (args.isEmpty) List("Alice", "Bob")
-      else args.toList
-
-    names.foreach(singleRequestReply)
+    args.foreach(singleRequestReply)
 
     def singleRequestReply(name: String): Unit = {
       println(s"Performing request: $name")
