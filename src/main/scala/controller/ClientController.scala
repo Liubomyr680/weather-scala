@@ -10,7 +10,7 @@ import scala.util.{Failure, Success}
 object ClientController {
 
   def main(args: Array[String]): Unit = {
-    implicit val sys: ActorSystem = ActorSystem("Client")
+    implicit val sys: ActorSystem = ActorSystem("ClientController")
     implicit val ec: ExecutionContext = sys.dispatcher
 
     val client = GetCityWeatherClient(GrpcClientSettings.fromConfig("service.GetCityWeather"))

@@ -10,5 +10,5 @@ trait ImplicitVals {
   implicit val materializer: Materializer = Materializer.createMaterializer(system)
   implicit val executionContext: ExecutionContextExecutor = system.dispatcher
 
-  val topic = "weather-data"
+
 }

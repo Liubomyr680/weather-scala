@@ -14,6 +14,7 @@ import scala.concurrent.Future
 object WeatherProducer extends ImplicitVals {
   private val logger = LoggerFactory.getLogger("my-app")
   val config: Config = ConfigFactory.load()
+  val topic = "weather-data"
 
   def sendDataToTopic(weatherData: Either[Throwable, Json]): Future[Unit] = {
     val producerSettings = ProducerSettings(config.getConfig("akka.kafka.producer"), new StringSerializer, new StringSerializer)

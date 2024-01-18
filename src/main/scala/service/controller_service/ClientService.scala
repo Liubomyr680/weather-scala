@@ -6,7 +6,7 @@ import io.lettuce.core.api.sync.RedisCommands
 
 import scala.concurrent.Future
 
-class ClientServiceImpl extends GetCityWeather {
+class ClientService extends GetCityWeather {
 
   val redisClient = RedisClient.create("redis://localhost:6379")
   val connection = redisClient.connect()
