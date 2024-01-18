@@ -15,25 +15,25 @@ import scala.concurrent.{ExecutionContext, Future}
 import scala.io.Source
 import scala.util.{Failure, Success}
 
-object GreeterServer {
+object Server {
 
   def main(args: Array[String]): Unit = {
     // important to enable HTTP/2 in ActorSystem's config
     val conf = ConfigFactory.parseString("akka.http.server.enable-http2 = on")
       .withFallback(ConfigFactory.defaultApplication())
     val system = ActorSystem("GreeterServer", conf)
-    new GreeterServer(system).run()
+    new Server(system).run()
   }
 }
 
-class GreeterServer(system: ActorSystem) {
+class Server(system: ActorSystem) {
 
   def run(): Future[Http.ServerBinding] = {
     implicit val sys = system
     implicit val ec: ExecutionContext = system.dispatcher
 
     val service: HttpRequest => Future[HttpResponse] =
-      GetCityWeatherHandler(new GreeterServiceImpl)
+      GetCityWeatherHandler(new ServiceImpl)
 
     val bound: Future[Http.ServerBinding] = Http()(system)
       .newServerAt(interface = "127.0.0.1", port = 8080)
@@ -60,7 +60,7 @@ class GreeterServer(system: ActorSystem) {
       DERPrivateKeyLoader.load(PEMDecoder.decode(readPrivateKeyPem()))
     val fact = CertificateFactory.getInstance("X.509")
     val cer = fact.generateCertificate(
-      classOf[GreeterServer].getResourceAsStream("/certs/server1.pem")
+      classOf[Server].getResourceAsStream("/certs/server1.pem")
     )
     val ks = KeyStore.getInstance("PKCS12")
     ks.load(null)
